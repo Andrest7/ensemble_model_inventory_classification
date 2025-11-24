@@ -87,7 +87,7 @@ def CostMatrix(df, item_id, holding_cost_columns, stockout_cost_columns, carryin
 
     return df_cost_matrix
 
-def ComputeTags(row):
+def Cost_ComputeTags(row):
 
     # ABC
     if row['TAG_ABC'] == 'A':
@@ -157,6 +157,62 @@ def ComputeTags(row):
 
     return pd.Series({
         'TAG_FINAL': tag_final, 
+        'COST_FINAL': cost_final,
+        'COST_ABC': cost_abc,
+        'COST_KMEANS': cost_kmeans,
+        'COST_HC': cost_hc,
+        'COST_GMM': cost_gmm
+    })
+
+def Clustering_ComputeTags(row):
+
+    # ABC
+    if row['TAG_ABC'] == 'A':
+        cost_abc = row[f"COST_A"]
+    elif row['TAG_ABC'] == 'B':
+        cost_abc = row[f"COST_B"]
+    elif row['TAG_ABC'] == 'C':
+        cost_abc = row[f"COST_C"]
+
+    # KMEANS
+    if row['TAG_KMEANS'] == 'A':
+        cost_kmeans = row[f"COST_A"]
+    elif row['TAG_KMEANS'] == 'B':
+        cost_kmeans = row[f"COST_B"]
+    elif row['TAG_KMEANS'] == 'C':
+        cost_kmeans = row[f"COST_C"]
+
+    # HIERARCHICAL
+    if row['TAG_HC'] == 'A':
+        cost_hc = row[f"COST_A"]
+    elif row['TAG_HC'] == 'B':
+        cost_hc = row[f"COST_B"]
+    elif row['TAG_HC'] == 'C':
+        cost_hc = row[f"COST_C"]
+
+    # GMM
+    if row['TAG_GMM'] == 'A':
+        cost_gmm = row[f"COST_A"]
+    elif row['TAG_GMM'] == 'B':
+        cost_gmm = row[f"COST_B"]
+    elif row['TAG_GMM'] == 'C':
+        cost_gmm = row[f"COST_C"]
+    
+    max_value = max(row['SIL_KMEANS'], row['SIL_HC'], row['SIL_GMM'])
+
+    if max_value == row['SIL_KMEANS']:
+        tag_final = row['TAG_KMEANS']
+        cost_final = row[f"COST_{tag_final}"]
+
+    elif max_value == row['SIL_HC']:
+        tag_final = row['TAG_HC']
+        cost_final = row[f"COST_{tag_final}"]
+    else:
+        tag_final = row['TAG_GMM']
+        cost_final = row[f"COST_{tag_final}"]
+
+    return pd.Series({
+        'TAG_FINAL': tag_final,
         'COST_FINAL': cost_final,
         'COST_ABC': cost_abc,
         'COST_KMEANS': cost_kmeans,
@@ -267,7 +323,7 @@ class Preprocess():
         return preprocess_data
 
 class EnsembleModel():
-    def __init__(self, df, X, X_transformed, n_clusters, item_id, ranking_column, file_name, cost_matrix):
+    def __init__(self, df, X, X_transformed, n_clusters, item_id, ranking_column, file_name, cost_matrix, priority, with_pca):
         self.df = df
         self.X = X
         self.X_transformed = X_transformed
@@ -276,6 +332,8 @@ class EnsembleModel():
         self.ranking_column = ranking_column
         self.file_name = file_name
         self.cost_matrix = cost_matrix
+        self.priority = priority
+        self.with_pca = with_pca
 
         self.df_final = None
         self.df_meta_model = None
@@ -434,21 +492,45 @@ class EnsembleModel():
     
     def _meta_model(self, results: dict) -> dict:
         
+        model = json.dumps({
+            "criterio": self.priority,
+            "pca": self.with_pca
+        })
+
         logger.info(f"<<< ⚠️  :: Inventory Classification :: Meta Model >>>")
+        logger.info(f"Model Parameters: {model}")
 
         df_final = self.df_final
 
-        df_final[['TAG_FINAL', 'COST_FINAL', 'COST_ABC', 'COST_KMEANS', 'COST_HC', 'COST_GMM']] = df_final.apply(ComputeTags, axis=1)
+        if self.priority == 'costs':
+            df_final[['TAG_FINAL', 'COST_FINAL', 'COST_ABC', 'COST_KMEANS', 'COST_HC', 'COST_GMM']] = df_final.apply(Cost_ComputeTags, axis=1)
+        else:
+            df_final[['TAG_FINAL', 'COST_FINAL', 'COST_ABC', 'COST_KMEANS', 'COST_HC', 'COST_GMM']] = df_final.apply(Clustering_ComputeTags, axis=1)
 
-        df_final = df_final[['PRODUCT_ID','TAG_FINAL', 'COST_FINAL', 'TAG_ABC', 'COST_ABC', 'TAG_KMEANS', 'COST_KMEANS', 'TAG_HC', 'COST_HC', 'TAG_GMM', 'COST_GMM']]
+        sil_meta = None
+        try:
+            unique_tags = sorted(df_final['TAG_FINAL'].unique())
+            tag_to_int = {tag: i for i, tag in enumerate(unique_tags)}
+            final_labels = df_final['TAG_FINAL'].map(tag_to_int).values
+
+            sil_meta = silhouette_score(self.X_transformed, final_labels)
+            logger.info(f"Silhouette Score: {sil_meta:.4f}")
+        except Exception as e:
+            logger.warning(f"Error silhouette Score for MetaModel: {e}")
+            sil_meta = None
+
+        df_final['SIL_META'] = sil_meta
+
+
+        df_final = df_final[['PRODUCT_ID','TAG_FINAL', 'COST_FINAL', 'SIL_META', 'TAG_ABC', 'COST_ABC', 'TAG_KMEANS', 'COST_KMEANS', 'SIL_KMEANS', 'TAG_HC', 'COST_HC', 'SIL_HC','TAG_GMM', 'COST_GMM', 'SIL_GMM']]
 
         self.df_meta_model = df_final
 
         results["meta_model"] = {
-            "model": 'MetaModel',
-            "labels": None,
-            "silhouette": None,
-            "tag_counts": None,
+            "model": model,
+            "labels": df_final['TAG_FINAL'].tolist(),
+            "silhouette": sil_meta,
+            "tag_counts": df_final['TAG_FINAL'].value_counts().to_dict(),
             "df_result": self.df_meta_model
         }
 
@@ -537,12 +619,19 @@ class EnsembleModel():
             df_result = data.get("df_result")
             tag_counts = data.get("tag_counts")
 
+            if name == 'meta_model':
+                model_params = model
+            elif hasattr(model, "get_params"):
+                model_params = model.get_params()
+            else:
+                model_params = None
+
             summary = {
                 "tag_counts": (
                     tag_counts
                 ),
                 "model_params": (
-                    model.get_params() if hasattr(model, "get_params") else None
+                    model_params
                 ),
                 "silhouette": (
                     float(silhouette) if silhouette is not None else None

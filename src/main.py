@@ -33,6 +33,10 @@ def main():
     ranking_column = "ORDERS"
     predictor_columns = ["UNITS", "ORDERS", "LEAD_TIME_DAYS", "AVG_STOCK_LEVEL"]
 
+    with_pca = False
+    #priority = 'costs'
+    priority = 'clustering'
+
     holding_cost_columns = ["UNIT_COST", "STDDEV_LEAD_TIME"]
     stockout_cost_columns = ["UNITS_STOCKOUT_COST", "AVG_DAILY_DEMAND"]
     carrying_rate=0.25
@@ -60,7 +64,7 @@ def main():
             pre = Preprocess(
                 file_name=str(dataset_path),
                 predictor_columns=predictor_columns,
-                with_pca=True
+                with_pca=with_pca
             )
             df, X, X_transformed = pre.execute_preprocess_data()
 
@@ -83,7 +87,9 @@ def main():
                 item_id=item_id,
                 ranking_column=ranking_column, 
                 file_name=dataset_name, 
-                cost_matrix=df_cost_matrix
+                cost_matrix=df_cost_matrix,
+                priority=priority,
+                with_pca=with_pca
             )
             
             em.execute_ensemble()
