@@ -2,17 +2,17 @@
 
 ## Overview
 
-This project implements an **unsupervised machine learning ensemble system** that classifies retail inventory items into ABC categories (A: high-priority, B: medium-priority, C: low-priority) by combining multiple clustering algorithms with inventory cost optimization [1](#0-0) .
+This project implements an **unsupervised machine learning ensemble system** that classifies retail inventory items into ABC categories (A: high-priority, B: medium-priority, C: low-priority) by combining multiple clustering algorithms with inventory cost optimization.
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/Andrest7/ensemble_model_inventory_classification.git
 cd ensemble_model_inventory_classification
 
 # Install dependencies
-pip install -r requirements.txt  # (if requirements.txt exists)
+pip install -r requirements.txt
 # Or manually install:
 pip install pandas numpy scikit-learn scipy
 ```
@@ -21,7 +21,7 @@ pip install pandas numpy scikit-learn scipy
 
 ### Basic Execution
 
-1. Place retailer CSV files in the `dataset/` directory with pattern `retailer_*.csv` [2](#0-1) 
+1. Place retailer CSV files in the `dataset/` directory with pattern `retailer_*.csv` 
 2. Run the pipeline:
    ```bash
    python src/main.py
@@ -29,7 +29,7 @@ pip install pandas numpy scikit-learn scipy
 
 ### Configuration
 
-Key parameters in `src/main.py` [3](#0-2) :
+Key parameters in `src/main.py`:
 
 - `n_clusters = 3` - Number of ABC classes
 - `ranking_column = "ORDERS"` - Column for ABC classification
@@ -39,7 +39,7 @@ Key parameters in `src/main.py` [3](#0-2) :
 
 ## Input Data Requirements
 
-CSV files must contain these required columns [4](#0-3) :
+CSV files must contain these required columns:
 
 | Category | Columns | Purpose |
 |----------|---------|---------|
@@ -52,7 +52,7 @@ CSV files must contain these required columns [4](#0-3) :
 
 ## Output Structure
 
-Results are saved to `results/DD_MM_YYYY/dataset_name/` with organized subdirectories [5](#0-4) :
+Results are saved to `results/DD_MM_YYYY/dataset_name/` with organized subdirectories:
 
 ```
 results/
@@ -74,15 +74,15 @@ Each directory contains:
 
 ## Key Features
 
-1. **Ensemble Architecture** - Combines 4 models: ABC analysis, KMeans, Hierarchical Clustering, and Gaussian Mixture Model [6](#0-5) 
+1. **Ensemble Architecture** - Combines 4 models: ABC analysis, KMeans, Hierarchical Clustering, and Gaussian Mixture Model
 
-2. **Cost Optimization** - Calculates inventory costs using classical ABC theory with fill rates (A: 98%, B: 95%, C: 90%) [7](#0-6) 
+2. **Cost Optimization** - Calculates inventory costs using classical ABC theory with fill rates (A: 98%, B: 95%, C: 90%) 
 
 3. **Dual Meta-Model Strategies**:
    - Cost-based: Minimizes total inventory cost
-   - Clustering-based: Maximizes silhouette score [8](#0-7) 
+   - Clustering-based: Maximizes silhouette score
 
-4. **Fault Tolerance** - Continues processing if one dataset fails [9](#0-8) 
+4. **Fault Tolerance** - Continues processing if one dataset fails
 
 ## Architecture
 
@@ -108,4 +108,4 @@ graph TB
 - The system uses scikit-learn for ML implementations
 - PCA is optional and uses Kaiser criterion (eigenvalue > 1)
 - All intermediate results are exported for full auditability
-- The banner displays author information and version [10](#0-9) 
+- The banner displays author information and version
