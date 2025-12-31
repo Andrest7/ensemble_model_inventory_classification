@@ -63,7 +63,7 @@ def CostMatrix(df, item_id, holding_cost_columns, stockout_cost_columns, carryin
         alpha = fill_rate[cls]
         z = float(norm.ppf(alpha))  # z-score del nivel de servicio
 
-        # Safety Stock (usa directamente la desviación en lead time)
+        # Safety Stock
         SS = z * d[sigmaL_col].values
 
         # Holding cost
@@ -335,6 +335,8 @@ class EnsembleModel():
         self.priority = priority
         self.with_pca = with_pca
 
+        self.branch = f"{self.priority}_pca_{self.with_pca}"
+
         self.df_final = None
         self.df_meta_model = None
 
@@ -605,7 +607,7 @@ class EnsembleModel():
 
         dataset_name = Path(self.file_name).stem
 
-        output_dir =base_dir / "results" / today / dataset_name
+        output_dir = base_dir / "results" / self.branch / today / dataset_name
         output_dir.mkdir(parents=True, exist_ok=True)
 
         for name, data in results.items():

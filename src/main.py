@@ -20,24 +20,22 @@ def main():
     if not dataset_files:
         print("⚠️  No datasets were found with the pattern 'retailer_*.csv'")
         return
-        # All Variables 
-            # UNITS, ORDERS, SALES
-            # UNITS_STOCKOUT, ORDERS_STOCKOUT, UNITS_STOCKOUT_COST
-            # UNITS_DEMAND, AVG_DAILY_DEMAND, STDDEV_DEMAND_FINAL
-            # UNIT_COST, AVG_STOCK_LEVEL, MEDIAN_STOCK_LEVEL
-            # LEAD_TIME_DAYS, STDDEV_LEAD_TIME
 
     # >> Parameters
     n_clusters = 3
     item_id = "PRODUCT_ID"
-    ranking_column = "ORDERS"
-    predictor_columns = ["UNITS", "ORDERS", "LEAD_TIME_DAYS", "AVG_STOCK_LEVEL"]
+    ranking_column = "UNITS_DEMAND" # Demand
+    predictor_columns = [ranking_column] + [
+        "LEAD_TIME_DAYS", # Lead Time 
+        "AVG_STOCK_LEVEL", # Inventory
+        "STDDEV_DEMAND_FINAL" # Demand Variability
+        ]
 
-    with_pca = False
-    #priority = 'costs'
-    priority = 'clustering'
+    with_pca = True
+    priority = 'costs'
+    #priority = 'clustering'
 
-    holding_cost_columns = ["UNIT_COST", "STDDEV_LEAD_TIME"]
+    holding_cost_columns = ["UNIT_COST", "STDDEV_DEMAND_DURING_LEAD_TIME"]
     stockout_cost_columns = ["UNITS_STOCKOUT_COST", "AVG_DAILY_DEMAND"]
     carrying_rate=0.25
     fill_rate={
